@@ -1,14 +1,23 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
+from django.http import HttpResponse
 from django.views.generic import View
 import folium
 import geocoder
 
 from .models import Search
+from .forms import SearchForm
 
 # Create your views here.
 
 def Home(request, template_name= "map/index.html"):
     context = {}
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/')
+    else:
+        form = SearchForm()
         
     # Search address
     address = Search.objects.all().last()
@@ -18,6 +27,10 @@ def Home(request, template_name= "map/index.html"):
     lng = location.lng
     country = location.country
     
+    if lat == None or lng == None:
+        address.delete()
+        return HttpResponse('You address input is invalid')
+
     
     # map object
     m = folium.Map(location=[19,-12,], zoom_start=2)
@@ -29,6 +42,7 @@ def Home(request, template_name= "map/index.html"):
     m = m._repr_html_()
         
     context['m'] = m
+    context['form'] = form
     return render(request, template_name, context)
 
     
